@@ -1,0 +1,603 @@
+{
+  "language": "chinese",
+  "project_name": "NetTape",
+  "architecture": {
+    "layers": [
+      "数据抓取层",
+      "数据缓冲层",
+      "定时调度层",
+      "数据处理层",
+      "插件管理模块",
+      "系统监控层"
+    ],
+    "design_patterns": [
+      "责任链模式",
+      "工厂模式",
+      "单例模式",
+      "观察者模式"
+    ]
+  },
+  "modules": {
+    "data_scraping": {
+      "classes": [
+        {
+          "name": "Scraper",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "scrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "根据配置抓取数据,返回抓取结果"
+            },
+            {
+              "name": "setNextScraper",
+              "params": ["Scraper nextScraper"],
+              "return": "voAid",
+              "description": "设置责任链中的下一个Scraper"
+            }
+          ]
+        },
+        {
+          "name": "AbstractScraper",
+          "type": "abstract class",
+          "fields": [
+            {
+              "name": "nextScraper",
+              "type": "Scraper",
+              "description": "责任链中下一个Scraper"
+            }
+          ],
+          "methods": [
+            {
+              "name": "scrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "模板方法,定义抓取流程"
+            },
+            {
+              "name": "doScrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "抽象方法,由子类实现具体抓取逻辑"
+            },
+            {
+              "name": "setNextScraper",
+              "params": ["Scraper nextScraper"],
+              "return": "void",
+              "description": "设置责任链中的下一个Scraper"
+            }
+          ]
+        },
+        {
+          "name": "HttpClientScraper",
+          "type": "class",
+          "superClass": "AbstractScraper",
+          "methods": [
+            {
+              "name": "doScrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "实现基于HttpClient的页面抓取"
+            }
+          ]
+        },
+        {
+          "name": "SeleniumScraper",
+          "type": "class",
+          "superClass": "AbstractScraper",
+          "methods": [
+            {
+              "name": "doScrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "实现基于Selenium的页面抓取"
+            }
+          ]
+        },
+        {
+          "name": "ScraperConfig",
+          "type": "class",
+          "fields": [
+            {
+              "name": "url",
+              "type": "String",
+              "description": "抓取目标URL"
+            },
+            {
+              "name": "method",
+              "type": "HttpMethod",
+              "description": "抓取使用的HTTP方法"
+            },
+            {
+              "name": "params",
+              "type": "Map<String, Object>",
+              "description": "抓取请求参数"
+            },
+            {
+              "name": "headers",
+              "type": "Map<String, String>",
+              "description": "抓取请求头"
+            },
+            {
+              "name": "cookies",
+              "type": "Map<String, String>",
+              "description": "抓取请求Cookie"
+            }
+          ]
+        },
+        {
+          "name": "ScraperConfigManager",
+          "type": "class",
+          "fields": [
+            {
+              "name": "configs",
+              "type": "Map<String, ScraperConfig>",
+              "description": "存储Scraper配置,key为配置ID"
+            }
+          ],
+          "methods": [
+            {
+              "name": "registerConfig",
+              "params": ["ScraperConfig config"],
+              "return": "void",
+              "description": "注册一个Scraper配置"
+            },
+            {
+              "name": "getConfig",
+              "params": ["String configId"],
+              "return": "ScraperConfig",
+              "description": "根据ID获取对应的Scraper配置"
+            }
+          ]
+        },
+        {
+          "name": "ScraperFactory",
+          "type": "class",
+          "methods": [
+            {
+              "name": "createScraper",
+              "params": ["String scraperType"],
+              "return": "Scraper",
+              "description": "根据scraperType创建对应的Scraper实例"
+            }
+          ]
+        },
+        {
+          "name": "RequestSerializer",
+          "type": "class",
+          "methods": [
+            {
+              "name": "serialize",
+              "params": ["HttpRequest request"],
+              "return": "String",
+              "description": "序列化一个抓取请求"
+            },
+            {
+              "name": "deserialize",
+              "params": ["String requestStr"],
+              "return": "HttpRequest",
+              "description": "反序列化一个抓取请求"
+            }
+          ]
+        },
+        {
+          "name": "ScrapingChain",
+          "type": "class",
+          "fields": [
+            {
+              "name": "chain",
+              "type": "List<ScrapingHandler>",
+              "description": "存储责任链上的处理器"
+            }
+          ],
+          "methods": [
+            {
+              "name": "addHandler",
+              "params": ["ScrapingHandler handler"],
+              "return": "void",
+              "description": "在责任链最后添加一个处理器"
+            },
+            {
+              "name": "scrape",
+              "params": ["ScraperConfig config"],
+              "return": "String",
+              "description": "使用责任链处理一个抓取请求"
+            }
+          ]
+        },
+        {
+          "name": "ScrapingHandler",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "handle",
+              "params": ["ScraperConfig config", "ScrapingChain chain"],
+              "return": "String",
+              "description": "处理一个抓取请求,并将结果传递给责任链中的下一个处理器"
+            }
+          ]
+        }
+      ]
+    },
+    "data_buffer": {
+      "classes": [
+        {
+          "name": "DataBuffer",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "put",
+              "params": ["String key", "String value"],
+              "return": "void",
+              "description": "向缓冲区中添加一个键值对"
+            },
+            {
+              "name": "get",
+              "params": ["String key"],
+              "return": "String",
+              "description": "从缓冲区中获取一个键对应的值"
+            },
+            {
+              "name": "remove",
+              "params": ["String key"],
+              "return": "void",
+              "description": "从缓冲区中移除一个键值对"
+            },
+            {
+              "name": "clear",
+              "params": [],
+              "return": "void",
+              "description": "清空缓冲区"
+            }
+          ]
+        },
+        {
+          "name": "LocalDataBuffer",
+          "type": "class",
+          "implements": ["DataBuffer"],
+          "fields": [
+            {
+              "name": "data",
+              "type": "Map<String, String>",
+              "description": "使用Map存储键值对"
+            }
+          ]
+        }
+      ]
+    },
+    "scheduling": {
+      "classes": [
+        {
+          "name": "JobConfig",
+          "type": "class",
+          "fields": [
+            {
+              "name": "name",
+              "type": "String",
+              "description": "任务名称"
+            },
+            {
+              "name": "group",
+              "type": "String",
+              "description": "任务所属组"
+            },
+            {
+              "name": "cron",
+              "type": "String",
+              "description": "任务执行的Cron表达式"
+            },
+            {
+              "name": "jobClass",
+              "type": "Class<? extends Job>",
+              "description": "任务对应的Job类"
+            },
+            {
+              "name": "data",
+              "type": "Map<String, Object>",
+              "description": "任务相关数据"
+            }
+          ]
+        },
+        {
+          "name": "JobScheduler",
+          "type": "class",
+          "fields": [
+            {
+              "name": "scheduler",
+              "type": "Scheduler",
+              "description": "Quartz调度器实例"
+            }
+          ],
+          "methods": [
+            {
+              "name": "start",
+              "params": [],
+              "return": "void",
+              "description": "启动调度器"
+            },
+            {
+              "name": "stop",
+              "params": [],
+              "return": "void",
+              "description": "停止调度器"
+            },
+            {
+              "name": "addJob",
+              "params": ["JobConfig jobConfig"],
+              "return": "void",
+              "description": "添加一个任务"
+            },
+            {
+              "name": "deleteJob",
+              "params": ["String jobName", "String jobGroup"],
+              "return": "void",
+              "description": "删除一个任务"
+            },
+            {
+              "name": "pauseJob",
+              "params": ["String jobName", "String jobGroup"],
+              "return": "void",
+              "description": "暂停一个任务"
+            },
+            {
+              "name": "resumeJob",
+              "params": ["String jobName", "String jobGroup"],
+              "return": "void",
+              "description": "恢复一个任务"
+            }
+          ]
+        }
+      ]
+    },
+    "data_processing": {
+      "classes": [
+        {
+          "name": "DataProcessor",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "process",
+              "params": ["String data"],
+              "return": "String",
+              "description": "处理数据,返回处理后的结果"
+            }
+          ]
+        },
+        {
+          "name": "DataProcessorConfig",
+          "type": "class",
+          "fields": [
+            {
+              "name": "processorClass",
+              "type": "Class<? extends DataProcessor>",
+              "description": "数据处理器对应的类"
+            },
+            {
+              "name": "configs",
+              "type": "Map<String, Object>",
+              "description": "数据处理器配置参数"
+            }
+          ]
+        },
+        {
+          "name": "DataProcessorFactory",
+          "type": "class",
+          "methods": [
+            {
+              "name": "createProcessor",
+              "params": ["DataProcessorConfig config"],
+              "return": "DataProcessor",
+              "description": "根据配置创建对应的DataProcessor实例"
+            }
+          ]
+        }
+      ]
+    },
+    "plugin_management": {
+      "classes": [
+        {
+          "name": "PluginManager",
+          "type": "class",
+          "fields": [
+            {
+              "name": "classLoader",
+              "type": "PluginClassLoader",
+              "description": "插件类加载器"
+            },
+            {
+              "name": "registry",
+              "type": "PluginRegistry",
+              "description": "插件注册表"
+            }
+          ],
+          "methods": [
+            {
+              "name": "loadPlugin",
+              "params": ["File jarFile"],
+              "return": "void",
+              "description": "从jar文件中加载一个插件"
+            },
+            {
+              "name": "registerPlugin",
+              "params": ["String pluginId", "Plugin plugin"],
+              "return": "void",
+              "description": "向注册表中注册一个插件"
+            },
+            {
+              "name": "unregisterPlugin",
+              "params": ["String pluginId"],
+              "return": "void",
+              "description": "从注册表中移除一个插件"
+            },
+            {
+              "name": "getPlugin",
+              "params": ["String pluginId"],
+              "return": "Plugin",
+              "description": "根据ID获取对应的插件实例"
+            }
+          ]
+        },
+        {
+          "name": "Plugin",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "init",
+              "params": [],
+              "return": "void",
+              "description": "插件初始化方法"
+            },
+            {
+              "name": "destroy",
+              "params": [],
+              "return": "void",
+              "description": "插件销毁方法"
+            }
+          ]
+        },
+        {
+          "name": "PluginClassLoader",
+          "type": "class",
+          "superClass": "URLClassLoader",
+          "description": "实现从指定路径加载类的功能"
+        },
+        {
+          "name": "PluginRegistry",
+          "type": "class",
+          "fields": [
+            {
+              "name": "plugins",
+              "type": "Map<String, Plugin>",
+              "description": "存储已注册插件,key为插件ID"
+            }
+          ]
+        }
+      ]
+    },
+    "system_monitoring": {
+      "classes": [
+        {
+          "name": "Metrics",
+          "type": "interface",
+          "methods": [
+            {
+              "name": "getKey",
+              "params": [],
+              "return": "String",
+              "description": "获取监控指标的Key"
+            },
+            {
+              "name": "getValue",
+              "params": [],
+              "return": "Object",
+              "description": "获取监控指标的Value"
+            }
+          ]
+        },
+        {
+          "name": "NodeMetricsCollector",
+          "type": "class",
+          "fields": [
+            {
+              "name": "metrics",
+              "type": "List<Metrics>",
+              "description": "存储节点的监控指标"
+            }
+          ],
+          "methods": [
+            {
+              "name": "collectMetrics",
+              "params": [],
+              "return": "void",
+              "description": "收集节点的监控指标"
+            },
+            {
+              "name": "getMetrics",
+              "params": [],
+              "return": "List<Metrics>",
+              "description": "获取节点的监控指标"
+            }
+          ]
+        },
+        {
+          "name": "ShellMonitor",
+          "type": "class",
+          "methods": [
+            {
+              "name": "handleCommand",
+              "params": ["String command"],
+              "return": "void",
+              "description": "处理Shell命令"
+            },
+            {
+              "name": "displayMetrics",
+              "params": ["List<Metrics> metrics"],
+              "return": "void",
+              "description": "显示监控指标"
+            }
+          ]
+        },
+        {
+          "name": "IntelligentScheduler",
+          "type": "class",
+          "fields": [
+            {
+              "name": "rules",
+              "type": "List<Rule>",
+              "description": "存储调度规则"
+            }
+          ],
+          "methods": [
+            {
+              "name": "schedule",
+              "params": ["List<JobConfig> jobs"],
+              "return": "void",
+              "description": "根据规则对任务进行调度"
+            },
+            {
+              "name": "addRule",
+              "params": ["Rule rule"],
+              "return": "void",
+              "description": "添加一个调度规则"
+            },
+            {
+              "name": "removeRule",
+              "params": ["Rule rule"],
+              "return": "void",
+              "description": "移除一个调度规则"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "additional_components": [
+    {
+      "name": "Gradle",
+      "purpose": "项目依赖管理和模块划分"
+    },
+    {
+      "name": "Spring Framework",
+      "purpose": "依赖注入和对象管理"
+    },
+    {
+      "name": "SLF4J",
+      "purpose": "日志框架"
+    },
+    {
+      "name": "JUnit",
+      "purpose": "单元测试"
+    },
+    {
+      "name": "Apache HttpClient",
+      "purpose": "HTTP请求处理"
+    }
+  ],
+  "next_steps": [
+    "制定项目开发计划和里程碑",
+    "设计数据库模式（如果需要）",
+    "制定代码规范和开发指南",
+    "设置持续集成/持续部署（CI/CD）流程"
+  ]
+}
