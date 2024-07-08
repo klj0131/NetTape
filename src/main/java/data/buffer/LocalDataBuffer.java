@@ -1,4 +1,4 @@
-package DataBuffer;
+package data.buffer;
 
 /**
  * @author jack

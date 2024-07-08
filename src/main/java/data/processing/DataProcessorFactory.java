@@ -1,4 +1,4 @@
-package DataProcessing;
+package data.processing;
 
 /**
  * @author jack

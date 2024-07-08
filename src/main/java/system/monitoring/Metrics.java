@@ -1,4 +1,4 @@
-package SystemMonitoring;
+package system.monitoring;
 
 /**
  * @author jack
